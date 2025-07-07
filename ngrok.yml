@@ -1,0 +1,11 @@
+version: "2"
+authtoken: 2nyqJf13sE0gblQcWyccisrr3SA_5hLs4t62ypJi4tC5KmuNY  # You get this from https://dashboard.ngrok.com/get-started/setup
+
+tunnels:
+  keycloak:
+    addr: 8080
+    proto: http
+
+  api:
+    addr: 3010
+    proto: http
