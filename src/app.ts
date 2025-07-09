@@ -92,6 +92,7 @@ import userRoutes from './routes/user.routes';
 //import { verifyTokenLocal } from "./middlewares/keycloak-verifyToken";
 
 import tenantTemplateRoutes from "./routes/tenantTemplate.routes";
+import stellarRoutes from "./routes/stellar.routes";
 //import { keycloakEnforcer } from "./middlewares/keycloak-enforcer";
 const app = express();
 
@@ -111,10 +112,8 @@ app.options("*", (req, res) => {
   res.sendStatus(200);
 });
 app.use(express.json());
-
+app.use('/api/stellar', stellarRoutes);
 app.use('/api/v1/realms', realmRoutes);
-
 app.use('/api/v1/users', userRoutes);
-
 app.use('/api/v1/tenant-templates', tenantTemplateRoutes);
 export default app;

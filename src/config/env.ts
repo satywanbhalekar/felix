@@ -14,4 +14,6 @@ export default {
     clientId: process.env.KEYCLOAK_CLIENT_ID!,
   },
   ENV: process.env.ENV || "dev",
+  issuerPublicKey: process.env.ISSUER_PUBLIC_KEY || '',
+  issuerSecretKey: process.env.ISSUER_SECRET_KEY || '',
 };
