@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { createKeycloakInstance } from "../config/keycloak-config";
 
 /**
@@ -8,6 +9,7 @@ import { createKeycloakInstance } from "../config/keycloak-config";
 export function keycloakEnforcer(permissionToBe: string) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const client_id: string = req.headers.client_id as string;
       const permissions: string = req.headers.permissions as string;
       const realm: string = req.headers.tenant as string;

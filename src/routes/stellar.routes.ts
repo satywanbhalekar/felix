@@ -8,5 +8,11 @@ router.post('/transfer', StellarController.transferXLM);
 router.post('/transfer-bld', StellarController.transferBLD);
 router.post('/trustline', StellarController.createTrustline);
 router.get('/:accountId', StellarController.getTransactionHistory);
+router.post('/create-account', StellarController.createAccountWithTrustline);
+router.post('/setup-multisig', StellarController.setupMultisig);
+router.post('/transfer-bld-multisig', StellarController.transferBLDWithMultisig);
+router.post('/prepare-multisig-transfer', StellarController.prepareMultisigPayment);
+router.post('/approve-multisig-transfer', StellarController.approveMultisigPayment);
+
 
 export default router;
