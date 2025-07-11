@@ -93,6 +93,9 @@ import userRoutes from './routes/user.routes';
 
 import tenantTemplateRoutes from "./routes/tenantTemplate.routes";
 import stellarRoutes from "./routes/stellar.routes";
+import entityRoutes from "./routes/entity.routes";
+import serviceRoutes from "./routes/service.routes";
+
 //import { keycloakEnforcer } from "./middlewares/keycloak-enforcer";
 const app = express();
 
@@ -116,4 +119,6 @@ app.use('/api/stellar', stellarRoutes);
 app.use('/api/v1/realms', realmRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/tenant-templates', tenantTemplateRoutes);
+app.use('/api/v1/entities', entityRoutes);
+app.use('/api/v1/services', serviceRoutes);
 export default app;

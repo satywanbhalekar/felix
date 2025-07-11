@@ -13,6 +13,12 @@ router.post('/setup-multisig', StellarController.setupMultisig);
 router.post('/transfer-bld-multisig', StellarController.transferBLDWithMultisig);
 router.post('/prepare-multisig-transfer', StellarController.prepareMultisigPayment);
 router.post('/approve-multisig-transfer', StellarController.approveMultisigPayment);
+router.get('/transactions/:publicKey', StellarController.getTransactions);
+
+router.post('/multisig/initiate', StellarController.initiateMultisigTransfer);
+router.post('/multisig/approve', StellarController.approveMultisigTransfer);
+router.get('/multisig/pending', StellarController.listPendingTransfers);
+
 
 
 export default router;

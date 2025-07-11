@@ -60,7 +60,8 @@ export class StellarService {
     issuerPublicKey: string,
     issuerSecretKey: string,
     receiverPublicKey: string,
-    amount: string
+    amount: string,
+     memoText: string = 'Asset Payment with multisig'
   ) {
     return await StellarDAO.sendAssetPaymentWithMultisig(
       senderPublicKey,
@@ -69,7 +70,8 @@ export class StellarService {
       issuerSecretKey,
       receiverPublicKey,
       amount,
-      'BLD'
+      'BLD',
+      memoText // ✅ pass to DAO
     );
   }
   
@@ -107,17 +109,77 @@ export class StellarService {
     return await StellarDAO.getTransactions(accountId);
   }
 
-  static async createAccountWithTrustline(username: string) {
-    const { publicKey, secretKey } = await StellarDAO.createAndFundAccount();
+//   static async createAccountWithTrustline(username: string) {
+//     const { publicKey, secretKey } = await StellarDAO.createAndFundAccount();
 
+//     const assetCode = process.env.ASSET_CODE || 'BLD';
+//     const issuerPublicKey = process.env.ISSUER_PUBLIC_KEY!;
+
+//     await StellarDAO.createTrustline(secretKey, assetCode, issuerPublicKey);
+
+//     // ✅ Save to Supabase
+//     await UserDAO.saveUser(username, publicKey, secretKey);
+
+//     return { publicKey, secretKey, username };
+//   }
+static async createAccountWithTrustline(username: string) {
+    const { publicKey, secretKey } = await StellarDAO.createAndFundAccount();
+  
     const assetCode = process.env.ASSET_CODE || 'BLD';
     const issuerPublicKey = process.env.ISSUER_PUBLIC_KEY!;
-
+  
     await StellarDAO.createTrustline(secretKey, assetCode, issuerPublicKey);
-
+  
+    // 🔐 Add issuer as co-signer for multisig
+    await StellarDAO.addMultisig(secretKey, issuerPublicKey);
+  
     // ✅ Save to Supabase
     await UserDAO.saveUser(username, publicKey, secretKey);
-
+  
     return { publicKey, secretKey, username };
   }
+  static async getTransactionsForAccount(publicKey: string) {
+    return await StellarDAO.getTransactionsByAccount(publicKey);
+  }
+
+
+
+
+
+
+
+
+
+
+  static async initiateMultisigTransfer(
+    senderPublicKey: string,
+    senderSecretKey: string,
+    receiverPublicKey: string,
+    issuerPublicKey: string,
+    amount: string,
+    memo: string
+  ) {
+    return await StellarDAO.createMultisigXDR(
+      senderPublicKey,
+      senderSecretKey,
+      receiverPublicKey,
+      issuerPublicKey,
+      amount,
+      'BLD',
+      memo
+    );
+  }
+
+  static async approveMultisigTransfer(xdr: string, issuerSecretKey: string) {
+    return await StellarDAO.approveMultisigXDR(xdr, issuerSecretKey);
+  }
+
+  static async listPendingTransfers() {
+    return await StellarDAO.getPendingTransactions();
+  }
+
+
+
+
+  
 }

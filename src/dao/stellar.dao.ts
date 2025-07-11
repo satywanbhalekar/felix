@@ -78,10 +78,44 @@ import axios from 'axios';
 import * as StellarSdk from 'stellar-sdk';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import config from '../config/env';
+import { supabase } from '../config/db';
 
 const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org');
 
 export class StellarDAO {
+
+    static async getTransactionsByAccount(publicKey: string) {
+        try {
+          const payments = await server.payments()
+            .forAccount(publicKey)
+            .order('desc')
+            .limit(20)
+            .call();
+    
+          const txs = [];
+    
+          for (const record of payments.records) {
+            if (record.type !== 'payment') continue;
+    
+            const txDetails = await record.transaction();
+    
+            txs.push({
+              from: record.from,
+              to: record.to,
+              asset: record.asset_type === 'native' ? 'XLM' : `${record.asset_code}${record.asset_issuer?.slice(0, 5)}...`,
+              amount: record.amount,
+              memo: txDetails.memo,
+              createdAt: txDetails.created_at,
+              txHash: txDetails.hash,
+            });
+          }
+    
+          return txs;
+        } catch (error: any) {
+          console.error('Failed to fetch transactions:', error.message);
+          throw new Error('Could not fetch transaction history');
+        }
+      }
 
     static async createAndFundAccount() {
         try {
@@ -99,6 +133,42 @@ export class StellarDAO {
           throw new Error('Failed to create and fund account');
         }
       }
+
+      static async addMultisig(userSecretKey: string, issuerPublicKey: string) {
+        const keypair = StellarSdk.Keypair.fromSecret(userSecretKey);
+        const account = await server.loadAccount(keypair.publicKey());
+      
+        const transaction = new StellarSdk.TransactionBuilder(account, {
+            fee: (await server.fetchBaseFee()).toString(),
+
+          networkPassphrase: StellarSdk.Networks.TESTNET,
+        })
+          // Add issuer as signer (weight 1)
+          .addOperation(
+            StellarSdk.Operation.setOptions({
+              signer: {
+                ed25519PublicKey: issuerPublicKey,
+                weight: 1,
+              },
+            })
+          )
+          // Set thresholds: low=1, med=2, high=2 (user=1, issuer=1 → both required)
+          .addOperation(
+            StellarSdk.Operation.setOptions({
+              masterWeight: 1,       // user key weight
+              lowThreshold: 1,
+              medThreshold: 2,
+              highThreshold: 2,
+            })
+          )
+          .setTimeout(300)
+          .build();
+      
+        transaction.sign(keypair);
+        await server.submitTransaction(transaction);
+      }
+      
+
 
   static async getAccountDetails(publicKey: string) {
     try {
@@ -231,9 +301,13 @@ export class StellarDAO {
         memo: memoText,
       };
     } catch (error: any) {
-      console.error('Multisig asset payment error:', error.response?.data || error.message);
-      throw new Error('Multisig Transaction failed');
-    }
+        if (error.response) {
+          console.error('Error submitting transaction to Stellar:', JSON.stringify(error.response.data, null, 2));
+        } else {
+          console.error('Unexpected error:', error.message);
+        }
+        throw new Error('Multisig Transaction failed');
+      }
   }
   
 
@@ -305,7 +379,7 @@ export class StellarDAO {
           amount,
         })
       )
-      .setTimeout(60)
+      .setTimeout(300)
       .build();
 
     tx.sign(senderKeypair);
@@ -348,4 +422,84 @@ export class StellarDAO {
       throw new Error('Unable to fetch transaction history');
     }
   }
+
+
+
+
+
+  static async createMultisigXDR(
+    senderPublicKey: string,
+    senderSecretKey: string,
+    receiverPublicKey: string,
+    issuerPublicKey: string,
+    amount: string,
+    assetCode: string = 'BLD',
+    memo: string = 'Multisig transfer'
+  ) {
+    const senderKeypair = StellarSdk.Keypair.fromSecret(senderSecretKey);
+    const sourceAccount = await server.loadAccount(senderPublicKey);
+    const asset = new StellarSdk.Asset(assetCode, issuerPublicKey);
+    const fee = await server.fetchBaseFee();
+
+    const tx = new StellarSdk.TransactionBuilder(sourceAccount, {
+      fee: fee.toString(),
+      networkPassphrase: StellarSdk.Networks.TESTNET,
+      memo: StellarSdk.Memo.text(memo),
+    })
+      .addOperation(StellarSdk.Operation.payment({
+        destination: receiverPublicKey,
+        asset,
+        amount,
+      }))
+      .setTimeout(300)
+      .build();
+
+    tx.sign(senderKeypair);
+    const xdr = tx.toXDR();
+
+    // Save XDR to DB
+    await supabase.from('pending_transactions').insert({
+      sender_public_key: senderPublicKey,
+      receiver_public_key: receiverPublicKey,
+      issuer_public_key: issuerPublicKey,
+      amount,
+      xdr,
+      memo,
+      asset_code: assetCode,
+    });
+
+    return { xdr };
+  }
+
+  static async approveMultisigXDR(xdr: string, issuerSecretKey: string) {
+    const tx = new StellarSdk.Transaction(xdr, StellarSdk.Networks.TESTNET);
+    const issuerKeypair = StellarSdk.Keypair.fromSecret(issuerSecretKey);
+    tx.sign(issuerKeypair);
+
+    const response = await server.submitTransaction(tx);
+
+    // Update status in DB
+    await supabase.from('pending_transactions')
+      .update({ status: 'COMPLETED' })
+      .eq('xdr', xdr);
+
+    return {
+      transactionHash: response.hash,
+      memo: tx.memo?.value,
+    };
+  }
+
+  static async getPendingTransactions() {
+    const { data, error } = await supabase
+      .from('pending_transactions')
+      .select('*')
+      .eq('status', 'PENDING')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error('Failed to fetch pending transactions');
+    return data;
+  }
+
+
+
 }

@@ -56,7 +56,8 @@ static async transferBLD(req: Request, res: Response) {
       receiverPublicKey,
       issuerPublicKey,
       issuerSecretKey,
-      amount
+      amount,
+      memoText  // ✅ new
     } = req.body;
   
     if (!senderPublicKey || !senderSecretKey || !receiverPublicKey || !issuerPublicKey || !issuerSecretKey || !amount) {
@@ -70,7 +71,7 @@ static async transferBLD(req: Request, res: Response) {
         issuerPublicKey,
         issuerSecretKey,
         receiverPublicKey,
-        amount
+        amount, memoText // ✅ pass to service
       );
       res.status(200).json({
         message: 'BLD Transfer with multisig successful',
@@ -190,6 +191,84 @@ console.log("getTransactionHistory");
         message: 'Account created, funded, trustline set, and stored in DB',
         ...result,
       });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getTransactions(req: Request, res: Response) {
+    const { publicKey } = req.params;
+
+    if (!publicKey) {
+       res.status(400).json({ error: 'publicKey is required' });
+    }
+
+    try {
+      const transactions = await StellarService.getTransactionsForAccount(publicKey);
+      res.status(200).json({ count: transactions.length, transactions });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+
+
+
+
+  static async initiateMultisigTransfer(req: Request, res: Response) {
+    const {
+      senderPublicKey,
+      senderSecretKey,
+      receiverPublicKey,
+      issuerPublicKey,
+      amount,
+      memoText
+    } = req.body;
+
+    if (!senderPublicKey || !senderSecretKey || !receiverPublicKey || !issuerPublicKey || !amount) {
+       res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+      const result = await StellarService.initiateMultisigTransfer(
+        senderPublicKey,
+        senderSecretKey,
+        receiverPublicKey,
+        issuerPublicKey,
+        amount,
+        memoText || 'Multisig transfer'
+      );
+      res.status(200).json({ message: 'Multisig XDR created and stored', ...result });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async approveMultisigTransfer(req: Request, res: Response) {
+    const { xdr, issuerSecretKey } = req.body;
+
+    if (!xdr || !issuerSecretKey) {
+       res.status(400).json({ error: 'XDR and issuerSecretKey are required' });
+    }
+
+    try {
+      const result = await StellarService.approveMultisigTransfer(xdr, issuerSecretKey);
+      res.status(200).json({ message: 'Transaction approved and submitted', ...result });
+    }  catch (error: any) {
+        if (error.response) {
+          console.error('Error submitting transaction to Stellar:', JSON.stringify(error.response.data, null, 2));
+        } else {
+          console.error('Unexpected error:', error.message);
+        }
+        throw new Error('Multisig Transaction failed');
+      }
+      
+  }
+
+  static async listPendingTransfers(req: Request, res: Response) {
+    try {
+      const data = await StellarService.listPendingTransfers();
+      res.status(200).json({ count: data.length, transactions: data });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
