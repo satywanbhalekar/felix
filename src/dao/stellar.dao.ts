@@ -194,7 +194,7 @@ export class StellarDAO {
         fee: fee.toString(),
         networkPassphrase: StellarSdk.Networks.TESTNET,
       })
-        .addOperation(StellarSdk.Operation.changeTrust({ asset }))
+        .addOperation(StellarSdk.Operation.changeTrust({ asset ,limit: '1000000' }))
         .setTimeout(30)
         .build();
 
@@ -202,9 +202,10 @@ export class StellarDAO {
       const result = await server.submitTransaction(transaction);
       return result.hash;
     } catch (error: any) {
-      console.error('Trustline error:', error.response?.data || error.message);
-      throw new Error('Failed to create trustline');
-    }
+        const resultCodes = error.response?.data?.extras?.result_codes;
+        console.error('Trustline error:', resultCodes || error.response?.data || error.message);
+        throw new Error('Failed to create trustline');
+      }
   }
 
   static async sendAssetPayment(
@@ -467,6 +468,7 @@ export class StellarDAO {
       memo,
       asset_code: assetCode,
     });
+console.log("xdrxdrxdr");
 
     return { xdr };
   }
@@ -499,6 +501,8 @@ export class StellarDAO {
     if (error) throw new Error('Failed to fetch pending transactions');
     return data;
   }
+
+
 
 
 

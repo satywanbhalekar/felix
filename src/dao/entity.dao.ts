@@ -37,4 +37,26 @@ export class EntityDAO {
     if (error) throw new Error(`Failed to fetch entities: ${error.message}`);
     return data;
   }
+  static async getEntityById(id: string) {
+    const { data, error } = await supabase
+      .from('entities')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  static async findEntityByPrefix(prefix: string) {
+    const { data, error } = await supabase
+      .from('entities')
+      .select('*')
+      .eq('short_id', prefix)
+      .limit(1)
+      .maybeSingle();
+  
+    if (error || !data) return null;
+    return data;
+  }
+  
 }

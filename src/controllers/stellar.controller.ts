@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
 import { StellarService } from '../services/stellar.service';
+import { ServiceDAO } from '../dao/service.dao';
+import { EntityDAO } from '../dao/entity.dao';
+import { ServiceService } from '../services/service.service';
+
 
 export class StellarController {
   static async getAccount(req: Request, res: Response) {
@@ -253,6 +257,27 @@ console.log("getTransactionHistory");
 
     try {
       const result = await StellarService.approveMultisigTransfer(xdr, issuerSecretKey);
+      // ✅ Auto-clone service if memo matches expected pattern
+      const memo = result.memo?.toString?.();
+      console.log("memo",memo);
+      
+      const match = memo?.match(/^svc:([a-z0-9]{4})-([a-z0-9]{4})$/i);
+      
+
+    if (match) {
+      const servicePrefix = match[1];
+      const entityPrefix = match[2];
+console.log("servicePrefix",servicePrefix,entityPrefix);
+
+      // Look up full serviceId and buyerEntityId using prefixes
+      const fullService = await ServiceDAO.findPublicServiceByPrefix(servicePrefix);
+      const fullEntity = await EntityDAO.findEntityByPrefix(entityPrefix);
+console.log("fullServicefullEntity",fullService,fullEntity);
+
+      if (fullService && fullEntity) {
+        await ServiceService.cloneServiceToEntity(fullService.id, fullEntity.id);
+      }
+    }
       res.status(200).json({ message: 'Transaction approved and submitted', ...result });
     }  catch (error: any) {
         if (error.response) {

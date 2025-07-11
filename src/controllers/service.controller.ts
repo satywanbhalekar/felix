@@ -47,4 +47,65 @@ export class ServiceController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  static async markServiceAsPublic(req: Request, res: Response) {
+    const { id } = req.params;
+
+    try {
+      const updated = await ServiceService.markServiceAsPublic(id);
+      res.status(200).json({ message: 'Service marked as public', service: updated });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async getServicesByEntityId(req: Request, res: Response) {
+    const { entityId } = req.params;
+    try {
+      const services = await ServiceService.getServicesByEntity(entityId);
+      res.status(200).json({ services });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async getAllPublicServices(req: Request, res: Response) {
+    try {
+      const services = await ServiceService.getAllPublicServices();
+      res.status(200).json({ services });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async buyPublicService(req: Request, res: Response) {
+    const {
+      buyerPublicKey,
+      buyerSecretKey,
+      issuerPublicKey,
+      serviceId,
+      buyerEntityId,
+    } = req.body;
+
+    if (!buyerPublicKey || !buyerSecretKey || !issuerPublicKey || !serviceId || !buyerEntityId) {
+       res.status(400).json({ error: 'All fields are required' });
+    }
+
+    try {
+      const result = await ServiceService.buyPublicService(
+        buyerPublicKey,
+        buyerSecretKey,
+        issuerPublicKey,
+        serviceId,
+        buyerEntityId
+      );
+
+      res.status(200).json({
+        message: 'Multisig initiated. Service will be added upon approval.',
+        ...result,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }
