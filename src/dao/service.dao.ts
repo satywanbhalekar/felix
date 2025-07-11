@@ -10,7 +10,7 @@ export class ServiceDAO {
         name: input.name,
         description: input.description || '',
         price: input.price,
-        currency: input.currency || 'BD',
+        currency: input.currency || 'BLD',
       })
       .select()
       .single();

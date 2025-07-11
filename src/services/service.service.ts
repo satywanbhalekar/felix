@@ -78,7 +78,7 @@ console.log("buyerPublicKey",buyerPublicKey,"buyerSecretKey",buyerSecretKey,"sel
       entity_id: targetEntityId,
       name: service.name,
       description: service.description,
-      price: 0, // Set to 0 or keep original price
+      price: service.price, // Set to 0 or keep original price
       currency: service.currency,
       is_public: false,
     };
