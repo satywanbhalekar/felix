@@ -180,6 +180,9 @@ static async createAccountWithTrustline(username: string) {
 
 
 
+  static async getAllUsers() {
+    return await UserDAO.getAllUsers();
+  }
   
 
   

@@ -5,6 +5,7 @@ import { EntityDAO } from '../dao/entity.dao';
 import { ServiceService } from '../services/service.service';
 
 
+
 export class StellarController {
   static async getAccount(req: Request, res: Response) {
     try {
@@ -298,4 +299,19 @@ console.log("fullServicefullEntity",fullService,fullEntity);
       res.status(500).json({ error: error.message });
     }
   }
+  static async listAllUsers(req: Request, res: Response) {
+    try {
+      const users = await StellarService.getAllUsers();
+  
+      if (users) {
+        res.status(200).json(users);
+      } else {
+        res.status(500).json({ error: 'Failed to fetch users' });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+  
+  
 }

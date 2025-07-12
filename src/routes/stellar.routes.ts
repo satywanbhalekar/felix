@@ -18,7 +18,7 @@ router.get('/transactions/:publicKey', StellarController.getTransactions);
 router.post('/multisig/initiate', StellarController.initiateMultisigTransfer);
 router.post('/multisig/approve', StellarController.approveMultisigTransfer);
 router.get('/multisig/pending', StellarController.listPendingTransfers);
-
+router.get('/users/listAllUsers', StellarController.listAllUsers);
 
 
 export default router;
