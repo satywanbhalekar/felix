@@ -58,5 +58,49 @@ export class EntityDAO {
     if (error || !data) return null;
     return data;
   }
+
+
+  static async getUserSummary(userId: string) {
+    // Get user details
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError || !user) return null;
+
+    // Get entities owned by user
+    const { data: ownedEntities, error: ownedError } = await supabase
+      .from('entities')
+      .select('*')
+      .eq('owner_id', userId);
+
+    if (ownedError) return null;
+
+    // Get memberships
+    const { data: memberships, error: memberError } = await supabase
+      .from('entity_members')
+      .select('*, entity:entity_id(*)')
+      .eq('user_id', userId);
+
+    if (memberError) return null;
+
+    // Get services in owned entities
+    const ownedEntityIds = ownedEntities.map(e => e.id);
+    const { data: services, error: servicesError } = await supabase
+      .from('services')
+      .select('*')
+      .in('entity_id', ownedEntityIds);
+
+    if (servicesError) return null;
+
+    return {
+      user,
+      ownedEntities,
+      memberships,
+      services,
+    };
+  }
   
 }

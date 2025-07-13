@@ -11,5 +11,5 @@ router.post('/add-member', EntityController.addMember);
 
 // Get all entities owned by a user
 router.get('/owner/:ownerId', EntityController.getEntitiesByOwner);
-
+router.get('/users/:userId/summary', EntityController.getUserSummary);
 export default router;
