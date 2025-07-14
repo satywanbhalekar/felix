@@ -49,17 +49,18 @@ export class EntityController {
 
   static async getUserSummary(req: Request, res: Response) {
     const userId = req.params.userId;
-
+  
     try {
       const summary = await EntityService.getUserSummary(userId);
-
+  
       if (!summary) {
-         res.status(404).json({ error: 'User summary not found' });
+        res.status(404).json({ error: 'User summary not found' });
+      } else {
+        res.status(200).json(summary); // ✅ only called if summary exists
       }
-
-      res.status(200).json(summary);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   }
+  
 }

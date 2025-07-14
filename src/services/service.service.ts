@@ -28,47 +28,114 @@ export class ServiceService {
     return await ServiceDAO.getPublicServices();
   }
 
-  static async buyPublicService(
-    buyerPublicKey: string,
-    buyerSecretKey: string,
-    issuerPublicKey: string,
-    serviceId: string,
-    buyerEntityId: string
-  ) {
-    const publicService = await ServiceDAO.getPublicServiceById(serviceId);
-    if (!publicService) throw new Error('Service not found or not public');
+//   static async buyPublicService(
+//     buyerPublicKey: string,
+//     buyerSecretKey: string,
+//     issuerPublicKey: string,
+//     serviceId: string,
+//     buyerEntityId: string
+//   ) {
+//     const publicService = await ServiceDAO.getPublicServiceById(serviceId);
+//     if (!publicService) throw new Error('Service not found or not public');
 
-    const sellerEntity = await EntityDAO.getEntityById(publicService.entity_id);
-    if (!sellerEntity || !sellerEntity.owner_id) throw new Error('Seller entity or owner not found');
+//     const sellerEntity = await EntityDAO.getEntityById(publicService.entity_id);
+//     if (!sellerEntity || !sellerEntity.owner_id) throw new Error('Seller entity or owner not found');
 
-    const { publicKey: sellerPublicKey } = await supabase
-      .from('users')
-      .select('publicKey')
-      .eq('id', sellerEntity.owner_id)
-      .single()
-      .then(({ data, error }) => {
-        if (error) throw new Error(error.message);
-        return data;
-      });
+//     const { publicKey: sellerPublicKey } = await supabase
+//       .from('users')
+//       .select('publicKey')
+//       .eq('id', sellerEntity.owner_id)
+//       .single()
+//       .then(({ data, error }) => {
+//         if (error) throw new Error(error.message);
+//         return data;
+//       });
 
-    //const memoText = `BuyService:${serviceId}:${buyerEntityId}`;
-    //const memoText = 'BuySvc'; 
-    //const memoText = serviceId.slice(0, 28)
-    const memoText = `svc:${serviceId.slice(0, 4)}-${buyerEntityId.slice(0, 4)}`;
-    const xdr = await StellarDAO.createMultisigAssetPaymentXDR(
-      buyerPublicKey,
-      buyerSecretKey,
-      sellerPublicKey,
-      'BLD',
-      issuerPublicKey,
-      publicService.price.toString(),
-      memoText
-    );
-console.log("buyerPublicKey",buyerPublicKey,"buyerSecretKey",buyerSecretKey,"sellerPublicKey",sellerPublicKey,"issuerPublicKey",issuerPublicKey," publicService.price.toString()", publicService.price.toString(), memoText);
+//     //const memoText = `BuyService:${serviceId}:${buyerEntityId}`;
+//     //const memoText = 'BuySvc'; 
+//     //const memoText = serviceId.slice(0, 28)
+//     const memoText = `svc:${serviceId.slice(0, 4)}-${buyerEntityId.slice(0, 4)}`;
+//     const xdr = await StellarDAO.createMultisigAssetPaymentXDR(
+//       buyerPublicKey,
+//       buyerSecretKey,
+//       sellerPublicKey,
+//       'BLD',
+//       issuerPublicKey,
+//       publicService.price.toString(),
+//       memoText
+//     );
+// console.log("buyerPublicKey",buyerPublicKey,"buyerSecretKey",buyerSecretKey,"sellerPublicKey",sellerPublicKey,"issuerPublicKey",issuerPublicKey," publicService.price.toString()", publicService.price.toString(), memoText);
 
-    // Optional: Save XDR to DB if needed for approval tracking
-    return { xdr };
+//     // Optional: Save XDR to DB if needed for approval tracking
+//     return { xdr };
+//   }
+
+
+
+static async buyPublicService(
+  buyerPublicKey: string,
+  buyerSecretKey: string,
+  issuerPublicKey: string,
+  serviceId: string,
+  buyerEntityId: string
+) {
+  // Step 1: Fetch public service
+  const publicService = await ServiceDAO.getPublicServiceById(serviceId);
+  if (!publicService) throw new Error('Service not found or not public');
+
+  // Step 2: Get seller entity and owner
+  const sellerEntity = await EntityDAO.getEntityById(publicService.entity_id);
+  if (!sellerEntity || !sellerEntity.owner_id) {
+    throw new Error('Seller entity or owner not found');
   }
+
+  // Step 3: Get seller public key
+  const { publicKey: sellerPublicKey } = await supabase
+    .from('users')
+    .select('publicKey')
+    .eq('id', sellerEntity.owner_id)
+    .single()
+    .then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return data;
+    });
+
+  // Step 4: Generate memo
+  const memoText = `svc:${serviceId.slice(0, 4)}-${buyerEntityId.slice(0, 4)}`;
+
+  // Step 5: Create XDR
+  const xdr = await StellarDAO.createMultisigAssetPaymentXDR(
+    buyerPublicKey,
+    buyerSecretKey,
+    sellerPublicKey,
+    'BLD',
+    issuerPublicKey,
+    publicService.price.toString(),
+    memoText
+  );
+
+  // ✅ Step 6: Save XDR to pending_transactions table
+  const { error: insertError } = await supabase.from('pending_transactions').insert({
+    sender_public_key: buyerPublicKey,
+    receiver_public_key: sellerPublicKey,
+    issuer_public_key: issuerPublicKey,
+    amount: publicService.price.toString(),
+    xdr,
+    memo: memoText,
+    asset_code: 'BLD',
+  });
+
+  if (insertError) {
+    console.error('Error saving pending transaction:', insertError.message);
+    throw new Error('Failed to store pending transaction');
+  }
+
+  console.log("Pending multisig transaction saved for approval.");
+  return { xdr };
+}
+
+
+
   static async cloneServiceToEntity(serviceId: string, targetEntityId: string) {
     const service = await ServiceDAO.getServiceById(serviceId);
     if (!service) throw new Error('Service not found');
