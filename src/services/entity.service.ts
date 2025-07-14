@@ -26,4 +26,8 @@ export class EntityService {
   static async getUserSummary(userId: string) {
     return await EntityDAO.getUserSummary(userId);
   }
+
+  static async getUsersByUsername(username: string) {
+    return await EntityDAO.getUsersByUsername(username);
+  }
 }

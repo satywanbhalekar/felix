@@ -62,5 +62,21 @@ export class EntityController {
       res.status(500).json({ error: err.message });
     }
   }
+
+  static async getUsersByUsername(req: Request, res: Response) {
+    const { username } = req.params;
+
+    try {
+      const users = await EntityService.getUsersByUsername(username);
+
+      if (users && users.length > 0) {
+        res.status(200).json(users);
+      } else {
+        res.status(404).json({ error: 'No users found with that username' });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
   
 }

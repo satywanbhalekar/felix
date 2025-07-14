@@ -1,5 +1,6 @@
 import { supabase } from '../config/db';
 import { CreateEntityInput, AddMemberInput } from '../interface/entity.interface';
+import { User } from '../interface/index.interface';
 
 export class EntityDAO {
   static async createEntity({ name, type, ownerId }: CreateEntityInput) {
@@ -103,4 +104,15 @@ export class EntityDAO {
     };
   }
   
+
+  static async getUsersByUsername(username: string): Promise<User[] | null> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('username', `%${username}%`); // case-insensitive partial match
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
 }
