@@ -249,47 +249,99 @@ console.log("getTransactionHistory");
     }
   }
 
-  static async approveMultisigTransfer(req: Request, res: Response) {
-    const { xdr, issuerSecretKey } = req.body;
+//   static async approveMultisigTransfer(req: Request, res: Response) {
+//     const { xdr, issuerSecretKey } = req.body;
 
-    if (!xdr || !issuerSecretKey) {
-       res.status(400).json({ error: 'XDR and issuerSecretKey are required' });
-    }
+//     if (!xdr || !issuerSecretKey) {
+//        res.status(400).json({ error: 'XDR and issuerSecretKey are required' });
+//     }
 
+//     try {
+//       const result = await StellarService.approveMultisigTransfer(xdr, issuerSecretKey);
+//       // ✅ Auto-clone service if memo matches expected pattern
+//       const memo = result.memo?.toString?.();
+//       console.log("memo",memo);
+      
+//       const match = memo?.match(/^svc:([a-z0-9]{4})-([a-z0-9]{4})$/i);
+      
+
+//     if (match) {
+//       const servicePrefix = match[1];
+//       const entityPrefix = match[2];
+// console.log("servicePrefix",servicePrefix,entityPrefix);
+
+//       // Look up full serviceId and buyerEntityId using prefixes
+//       const fullService = await ServiceDAO.findPublicServiceByPrefix(servicePrefix);
+//       const fullEntity = await EntityDAO.findEntityByPrefix(entityPrefix);
+// console.log("fullServicefullEntity",fullService,fullEntity);
+
+//       if (fullService && fullEntity) {
+//         await ServiceService.cloneServiceToEntity(fullService.id, fullEntity.id);
+//       }
+//     }
+//       res.status(200).json({ message: 'Transaction approved and submitted', ...result });
+//     }  catch (error: any) {
+//         if (error.response) {
+//           console.error('Error submitting transaction to Stellar:', JSON.stringify(error.response.data, null, 2));
+//         } else {
+//           console.error('Unexpected error:', error.message);
+//         }
+//         throw new Error('Multisig Transaction failed');
+//       }
+      
+//   }
+
+
+static async approveMultisigTransfer(req: Request, res: Response) {
+  const { xdr, issuerSecretKey } = req.body;
+
+  if (!xdr || !issuerSecretKey) {
+    res.status(400).json({ error: 'XDR and issuerSecretKey are required' });
+  } else {
     try {
       const result = await StellarService.approveMultisigTransfer(xdr, issuerSecretKey);
+
       // ✅ Auto-clone service if memo matches expected pattern
       const memo = result.memo?.toString?.();
-      console.log("memo",memo);
-      
+      console.log("memo", memo);
+
       const match = memo?.match(/^svc:([a-z0-9]{4})-([a-z0-9]{4})$/i);
-      
 
-    if (match) {
-      const servicePrefix = match[1];
-      const entityPrefix = match[2];
-console.log("servicePrefix",servicePrefix,entityPrefix);
+      if (match) {
+        const servicePrefix = match[1];
+        const entityPrefix = match[2];
+        console.log("servicePrefix", servicePrefix, entityPrefix);
 
-      // Look up full serviceId and buyerEntityId using prefixes
-      const fullService = await ServiceDAO.findPublicServiceByPrefix(servicePrefix);
-      const fullEntity = await EntityDAO.findEntityByPrefix(entityPrefix);
-console.log("fullServicefullEntity",fullService,fullEntity);
+        // Look up full serviceId and buyerEntityId using prefixes
+        const fullService = await ServiceDAO.findPublicServiceByPrefix(servicePrefix);
+        const fullEntity = await EntityDAO.findEntityByPrefix(entityPrefix);
+        console.log("fullServicefullEntity", fullService, fullEntity);
 
-      if (fullService && fullEntity) {
-        await ServiceService.cloneServiceToEntity(fullService.id, fullEntity.id);
+        if (fullService && fullEntity) {
+          await ServiceService.cloneServiceToEntity(fullService.id, fullEntity.id);
+        }
+      }
+
+      res.status(200).json({ message: 'Transaction approved and submitted', ...result });
+
+    } catch (error: any) {
+      if (error.response) {
+        console.error('Error submitting transaction to Stellar:', JSON.stringify(error.response.data, null, 2));
+        res.status(400).json({
+          error: 'Transaction failed on Stellar network',
+          details: error.response.data
+        });
+      } else {
+        console.error('Unexpected error:', error.message);
+        res.status(500).json({
+          error: 'Internal Server Error',
+          message: error.message
+        });
       }
     }
-      res.status(200).json({ message: 'Transaction approved and submitted', ...result });
-    }  catch (error: any) {
-        if (error.response) {
-          console.error('Error submitting transaction to Stellar:', JSON.stringify(error.response.data, null, 2));
-        } else {
-          console.error('Unexpected error:', error.message);
-        }
-        throw new Error('Multisig Transaction failed');
-      }
-      
   }
+}
+
 
   static async listPendingTransfers(req: Request, res: Response) {
     try {
